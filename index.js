@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config();
 app = express();
 const port = process.env.port || 8000;
@@ -34,7 +34,7 @@ async function run() {
 
 
 
-
+// data store korar jonno at first post operation korte hbe
 
     app.post('/game' , async(req , res)=>{
       const newGame = req.body;
@@ -42,7 +42,41 @@ async function run() {
       const result = await gameCollection.insertOne(newGame);
       res.send(result);
       
-    } )
+    } );
+
+    // Read the data  = get operation
+    app.get('/game' , async(req , res)=>{
+      const cursor = gameCollection.find();
+      const result = await cursor.toArray();
+      res.send(result);
+    }) 
+
+   
+    app.get('/game/:id' , async(req , res)=>{
+      const id = req.params.id;
+      const query = {_id: new ObjectId(id)};
+      const result = await gameCollection.findOne(query);
+      res.send(result);
+    })
+
+    // Update
+    app.patch('/game/:id' , async(req , res)=>{
+      const id = req.params.id;
+      const updateInfo = req.body;
+      const result = await gameCollection.updateOne(
+        {_id: new ObjectId(id)},
+          {$set: updateInfo}
+      );
+      res.send(res);
+    })
+
+    // delete ops
+    app.delete('/game/:id' , async(req , res)=>{
+      const id = req.params.id;
+      const query = {_id: new ObjectId(id)};
+      const result = await gameCollection.deleteOne(query);
+      res.send(result);
+    })
 
 
 

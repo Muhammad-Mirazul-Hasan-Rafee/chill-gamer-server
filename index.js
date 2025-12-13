@@ -30,23 +30,46 @@ async function run() {
     // to store data at first post operation is needed = creating a review
 
     app.post("/game", async (req, res) => {
-      const newGame = { ...req.body, userPhoto: req.body.userPhoto || "" , totalLikes: 0, likedBy: [] };
+      const body = req.body;
+      console.log(body);
+      const newGame = {
+        userName: body.userName,
+        userPhoto: body.userPhoto,
+        uid: body.uid,
+        gameTitle: body.gameTitle,
+        reviewDescription: body.reviewDescription,
+        rating: body.rating || "",
+        publishingYear: body.publishingYear || "",
+        thumbnail: body.thumbnail || "",
+        genres: body.genres || "",
+        totalLikes: 0,
+        likedBy: [],
+        createdAt: new Date(),
+      };
       console.log("New Game Review:", newGame);
       const result = await gameCollection.insertOne(newGame);
       res.send(result);
     });
 
     // Read the data  = get operation  = Get all reviews (or filter by uid)
+    // Get all reviews or filter by uid
     app.get("/game", async (req, res) => {
-      const { uid } = req.query; // if query contains uid , only that specific user data will come
-      let query = {};
-      if (uid) {
-        // filtering specific uid
-        query.uid = uid;
+      try {
+        const { uid } = req.query;
+
+        // Only filter if uid exists, otherwise return all documents
+        const query = uid ? { uid: uid } : {};
+
+        const result = await gameCollection
+          .find(query)
+          .sort({ createdAt: -1 })
+          .toArray();
+
+        res.send(result);
+      } catch (err) {
+        console.error(err);
+        res.status(500).send({ error: "Failed to fetch reviews" });
       }
-      const cursor = gameCollection.find(query);
-      const result = await cursor.toArray();
-      res.send(result);
     });
 
     //GET: Single review by id
@@ -82,59 +105,48 @@ async function run() {
       res.send(result);
     });
 
-    // Like or unlike 
+    // Like or unlike
     app.post("/game/:id/like", async (req, res) => {
       const id = req.params.id;
-      const {uid} = req.body;
+      const { uid } = req.body;
 
       if (!uid) {
         return res.status(400).send({ error: "missing UID!" });
       }
-
-
 
       const review = await gameCollection.findOne({ _id: new ObjectId(id) });
       if (!review) {
         return res.status(404).send({ error: "Review not found" });
       }
 
-
-
       let likedBy = review.likedBy || [];
       let totalLikes = review.totalLikes || 0;
 
       // if already liked ? ----> unlike
-      if(likedBy.includes(uid)){
-        likedBy = likedBy.filter((u)=> u !== uid);
-        totalLikes = Math.max(0 , totalLikes - 1);
+      if (likedBy.includes(uid)) {
+        likedBy = likedBy.filter((u) => u !== uid);
+        totalLikes = Math.max(0, totalLikes - 1);
       }
 
       // if no like? ----> adding a like
-      else{
+      else {
         likedBy.push(uid);
         totalLikes += 1;
       }
 
       // updating DB
       const result = await gameCollection.updateOne(
-        {_id: new ObjectId(id)},
+        { _id: new ObjectId(id) },
         {
-          $set: {likedBy , totalLikes,},
+          $set: { likedBy, totalLikes },
         }
       );
- //  Return full info needed for frontend
-      res.send({success: true , 
+      //  Return full info needed for frontend
+      res.send({
+        success: true,
         totalLikes, //total likes updated
-        likedBy,  // updated likedBy array
-
+        likedBy, // updated likedBy array
       });
-
-
-
-
-
-
-
     });
 
     // Send a ping to confirm a successful connection

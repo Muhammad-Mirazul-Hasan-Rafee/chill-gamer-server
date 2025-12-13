@@ -165,6 +165,10 @@ app.get("/", (req, res) => {
   res.send("Chill-Gamer server is running");
 });
 
-app.listen(port, () => {
-  console.log(`Chill Gamer server is running on port ${port}`);
-});
+// app.listen(port, () => {
+//   console.log(`Chill Gamer server is running on port ${port}`);
+// });
+
+
+// export app for Vercel (IMPORTANT)
+module.exports = app;
